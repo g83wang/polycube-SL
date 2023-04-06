@@ -1,19 +1,14 @@
-CXX = g++
-CXXFLAGS = -std=c++11 -Wall -O2 -I./home/g83wang/polycube-SL/server/Crow/include -Iinclude
-LDFLAGS = -larchive -lpthread -lboost_system
+CXX=g++
+CXXFLAGS=-std=c++17 -Wall -Wextra
+LDFLAGS=-lcpprest -lboost_system -lpthread -lssl -lcrypto -larchive
 
-SRC = server.cc
-OBJ = $(SRC:.cc=.o)
-TARGET = server
+all: server
 
-all: $(TARGET)
+server: server.o
+	$(CXX) $(CXXFLAGS) -o server server.o $(LDFLAGS)
 
-$(TARGET): $(OBJ)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+server.o: server.cc
+	$(CXX) $(CXXFLAGS) -c server.cc -o server.o
 
-%.o: %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-.PHONY: clean
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f server server.o

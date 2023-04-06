@@ -1,6 +1,6 @@
 CC = g++
 CFLAGS = -Wall -Wextra -std=c++11
-LIBS = -lcurl -larchive
+LIBS = -lcpprest -lboost_system -lssl -lcrypto -larchive -lcurl -lpthread
 
 SRCS = upload.cpp
 OBJS = $(SRCS:.cpp=.o)

@@ -10,6 +10,8 @@
 #include <sstream>
 #include <archive.h>
 #include <archive_entry.h>
+#include <cpprest/http_client.h>
+#include <cpprest/filestream.h>
 
 using namespace std;
 
@@ -20,35 +22,45 @@ int create_archive(const string& dir_path, const string& archive_path) {
     return 0;
 }
 
+string get_file_name(const string& path) {
+    size_t pos = path.find_last_of("/\\");
+    return (pos == string::npos) ? path : path.substr(pos + 1);
+}
+
 int upload_file(const string& target_url, const string& archive_path) {
-    CURL *curl = curl_easy_init();
+    web::http::client::http_client client(target_url);
+    web::http::http_request request(web::http::methods::POST);
+    request.headers().add("file_name", get_file_name(archive_path));
 
-    struct curl_httppost *firstitem = NULL;
-    struct curl_httppost *lastitem = NULL;
-    struct curl_slist *headers = NULL;
-    headers = curl_slist_append(headers, "new_service");
+    auto file_stream = concurrency::streams::file_stream<uint8_t>::open_istream(archive_path).get();
+    request.set_body(file_stream.streambuf());
 
-    curl_formadd(&firstitem, &lastitem, CURLFORM_COPYNAME, "file", CURLFORM_FILENAME, archive_path.c_str(), CURLFORM_FILE, archive_path.c_str(), CURLFORM_END);
+    try {
+        auto response = client.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK) {
+            std::cout << "File uploaded successfully" << std::endl;
+        } else {
+            std::cout << "Failed to upload the file. HTTP status: " << response.status_code() << std::endl;
+        }
+    } catch (const web::http::http_exception& e) {
+        std::cerr << "Error while uploading the file: " << e.what() << std::endl;
+    }
 
-    curl_easy_setopt(curl, CURLOPT_URL, target_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_HTTPPOST, firstitem);
-    int result = curl_easy_perform(curl);
-    cout << result << endl;
-    curl_easy_cleanup(curl);
+    file_stream.close().wait();
 
     return 0;
 }
 
+
 int main(int argc, char *argv[]) {
-    string endpoint_url = "http://localhost:9000/polycube/v1";
+    string endpoint_url = "http://localhost:8000/polycube/v1";
     string dir_path = argv[1];
 
     string archive_path = "/home/g83wang/polycube-SL/client/archive_directory/my_archive.tar.gz";
     create_archive(dir_path, archive_path);
     upload_file(endpoint_url, archive_path);
 
-    remove(archive_path.c_str());
+    //remove(archive_path.c_str());
 
     return 0;
 }
