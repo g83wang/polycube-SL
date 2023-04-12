@@ -55,8 +55,9 @@ int upload_file(const string& target_url, const string& archive_path) {
 int main(int argc, char *argv[]) {
     string endpoint_url = "http://localhost:8000/polycube/v1";
     string dir_path = argv[1];
-
-    string archive_path = "/home/g83wang/polycube-SL/client/archive_directory/my_archive.tar.gz";
+    string prog_name = argv[2];
+    string archive_path = "./archive_directory/" + prog_name+ ".tar.gz";
+    cout << archive_path << endl;
     create_archive(dir_path, archive_path);
     upload_file(endpoint_url, archive_path);
 

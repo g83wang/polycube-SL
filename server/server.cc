@@ -51,10 +51,10 @@ void extract(const string& archive_path, const  string& destination) {
     archive_write_free(ext);
 }
 
-class FileExtractionServer {
+class Server {
 public:
-    FileExtractionServer() {}
-    FileExtractionServer(utility::string_t url);
+    Server() {}
+    Server(utility::string_t url);
 
     void handle_request(http_request message);
     void initialize(const string_t& address);
@@ -65,15 +65,15 @@ private:
     concurrency::streams::file_buffer<uint8_t> file_buffer() const;
 };
 
-FileExtractionServer::FileExtractionServer(utility::string_t url) : m_listener(url) {
-    m_listener.support(methods::POST,  bind(&FileExtractionServer::handle_request, this,  placeholders::_1));
+Server::Server(utility::string_t url) : m_listener(url) {
+    m_listener.support(methods::POST,  bind(&Server::handle_request, this,  placeholders::_1));
 }
 
-concurrency::streams::file_buffer<uint8_t> FileExtractionServer::file_buffer() const {
+concurrency::streams::file_buffer<uint8_t> Server::file_buffer() const {
     return concurrency::streams::file_buffer<uint8_t>();
 }
 int d = 0;
-void FileExtractionServer::handle_request(http_request message) {
+void Server::handle_request(http_request message) {
     auto path = message.relative_uri().path();
     if (path == U("/polycube/v1")) {
         if (message.method() == methods::POST) {
@@ -85,7 +85,7 @@ void FileExtractionServer::handle_request(http_request message) {
                     ofstream out(file_path,  ios::out |  ios::binary);
                     out.write(reinterpret_cast<const char*>(file_data.data()), file_data.size());
                     out.close();
-                    string extracted_dir = "extracted_files/" + utility::conversions::to_utf8string(file_name) + "_extracted";
+                    string extracted_dir = "extracted_files/";
                     extract(file_path, extracted_dir);
 
                     message.reply(status_codes::OK, "File received and extracted");
@@ -104,11 +104,11 @@ void FileExtractionServer::handle_request(http_request message) {
 }
 
 
-void FileExtractionServer::initialize(const string_t& address) {
+void Server::initialize(const string_t& address) {
     uri_builder uri(address);
     auto addr = uri.to_uri().to_string();
     m_listener = http_listener(addr);
-    m_listener.support(methods::POST, bind(&FileExtractionServer::handle_request, this, placeholders::_1));
+    m_listener.support(methods::POST, bind(&Server::handle_request, this, placeholders::_1));
     try {
         m_listener
             .open()
@@ -122,7 +122,7 @@ void FileExtractionServer::initialize(const string_t& address) {
     }
 }
 
-void FileExtractionServer::shutdown() {
+void Server::shutdown() {
     m_listener
         .close()
         .then([&]() { cout << "stop listening" << endl; })
@@ -131,7 +131,7 @@ void FileExtractionServer::shutdown() {
 
 int main() {
     utility::string_t address = U("http://localhost:8000");
-    FileExtractionServer server;
+    Server server;
 
     server.initialize(address);
 
