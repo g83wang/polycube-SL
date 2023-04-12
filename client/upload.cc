@@ -22,15 +22,15 @@ int create_archive(const string& dir_path, const string& archive_path) {
     return 0;
 }
 
-string get_file_name(const string& path) {
-    size_t pos = path.find_last_of("/\\");
-    return (pos == string::npos) ? path : path.substr(pos + 1);
-}
+//string get_file_name(const string& path) {
+//    size_t pos = path.find_last_of("/\\");
+//    return (pos == string::npos) ? path : path.substr(pos + 1);
+//}
 
-int upload_file(const string& target_url, const string& archive_path) {
+int upload_file(const string& target_url, const string& archive_path, const string& prog_name) {
     web::http::client::http_client client(target_url);
     web::http::http_request request(web::http::methods::POST);
-    request.headers().add("file_name", get_file_name(archive_path));
+    request.headers().add("file_name", prog_name);
 
     auto file_stream = concurrency::streams::file_stream<uint8_t>::open_istream(archive_path).get();
     request.set_body(file_stream.streambuf());
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     string archive_path = "./archive_directory/" + prog_name+ ".tar.gz";
     cout << archive_path << endl;
     create_archive(dir_path, archive_path);
-    upload_file(endpoint_url, archive_path);
+    upload_file(endpoint_url, archive_path, prog_name);
 
     //remove(archive_path.c_str());
 

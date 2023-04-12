@@ -8,6 +8,8 @@
 #include <experimental/filesystem>
 #include <archive.h>
 #include <archive_entry.h>
+#include <cstdlib>
+#include <sstream>
 
 
 using namespace std;
@@ -16,6 +18,25 @@ using namespace http;
 using namespace utility;
 using namespace http::experimental::listener;
 
+void build_and_load_service(const string& service_name, const string& extracted_dir) {
+    string build_cmd = "cd " + extracted_dir + " && mkdir build && cd build && cmake .. && make -j $(getconf _NPROCESSORS_ONLN)";
+    int build_result = system(build_cmd.c_str());
+    cout << extracted_dir << endl;
+    if (build_result != 0) {
+        cerr << "Error building the service: " << service_name << endl;
+        return;
+    }
+
+    string lib_path = extracted_dir + "build/src/libpcn-" + service_name + ".so";
+    string load_cmd = "polycubectl services add type=lib uri=" + lib_path + " name=" + service_name;
+    int load_result = system(load_cmd.c_str());
+
+    if (load_result != 0) {
+        cerr << "Error loading the service: " << service_name << endl;
+    } else {
+        cout << "Successfully loaded the service: " << service_name << endl;
+    }
+}
 
 void extract(const string& archive_path, const  string& destination) {
     struct archive* a = archive_read_new();
@@ -87,8 +108,9 @@ void Server::handle_request(http_request message) {
                     out.close();
                     string extracted_dir = "extracted_files/";
                     extract(file_path, extracted_dir);
-
-                    message.reply(status_codes::OK, "File received and extracted");
+                    extracted_dir = "extracted_files/" + utility::conversions::to_utf8string(file_name) + "/";
+                    build_and_load_service(utility::conversions::to_utf8string(file_name), extracted_dir);
+                    message.reply(status_codes::OK, "File received, extracted, built, and loaded");
                 }).wait();
             }
             catch (const http_exception& e) {
